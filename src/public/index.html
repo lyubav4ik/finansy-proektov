@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Финансы проектов</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <script src="//api.bitrix24.com/api/v1/"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="boot" class="boot">
+    <div class="boot-card">
+      <div class="boot-logo">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="32" cy="37" rx="23" ry="21" fill="#FF6B2C"/>
+          <path d="M32 33 C 27 26, 16 29, 17.5 40 C 18.5 48, 25 53, 32 53 C 39 53, 45.5 48, 46.5 40 C 48 29, 37 26, 32 33 Z" fill="#FFF0E6"/>
+          <circle cx="25" cy="34" r="2.4" fill="#3D2210"/>
+          <circle cx="39" cy="34" r="2.4" fill="#3D2210"/>
+          <path d="M32 39 C 31.2 39, 30.4 39.6, 30.4 40.6 C 30.4 42, 32 43.4, 32 43.4 C 32 43.4, 33.6 42, 33.6 40.6 C 33.6 39.6, 32.8 39, 32 39 Z" fill="#3D2210"/>
+        </svg>
+      </div>
+      <h1>Финансы проектов</h1>
+      <p>Подключение к порталу…</p>
+      <div class="fox-spinner"></div>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-logo">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="32" cy="37" rx="23" ry="21" fill="#FF6B2C"/>
+              <path d="M32 33 C 27 26, 16 29, 17.5 40 C 18.5 48, 25 53, 32 53 C 39 53, 45.5 48, 46.5 40 C 48 29, 37 26, 32 33 Z" fill="#FFF0E6"/>
+              <circle cx="25" cy="34" r="2.4" fill="#3D2210"/>
+              <circle cx="39" cy="34" r="2.4" fill="#3D2210"/>
+              <path d="M32 39 C 31.2 39, 30.4 39.6, 30.4 40.6 C 30.4 42, 32 43.4, 32 43.4 C 32 43.4, 33.6 42, 33.6 40.6 C 33.6 39.6, 32.8 39, 32 39 Z" fill="#3D2210"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Финансы проектов</span>
+            <span class="brand-sub">Учёт доходов и расходов</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span id="user-name" class="user-name"></span>
+          <button class="icon-btn" id="btn-export" title="Экспорт CSV">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="dashboard">Дашборд</button>
+        <button class="tab" data-tab="transactions">Операции</button>
+        <button class="tab" data-tab="projects">Проекты</button>
+        <button class="tab" data-tab="categories">Статьи</button>
+        <button class="tab" data-tab="employees">Сотрудники</button>
+        <button class="tab" data-tab="report">Отчёт</button>
+      </nav>
+    </header>
+
+    <main class="content">
+      <!-- ИНДИКАТОР ГРУЗКИ -->
+      <div id="loading" class="loading hidden"><div class="fox-spinner"></div></div>
+
+      <div id="error" class="banner error hidden"></div>
+
+      <!-- ДАШБОРД -->
+      <section id="view-dashboard" class="view">
+        <div class="filters-row">
+          <select id="d-project" class="fox-input select-inline"></select>
+          <input type="month" id="d-month-from" class="fox-input select-inline" title="Период с">
+          <span class="filter-sep">—</span>
+          <input type="month" id="d-month-to" class="fox-input select-inline" title="Период по">
+        </div>
+        <div class="kpi-grid">
+          <div class="fox-card kpi kpi-income">
+            <div class="kpi-label">Доход</div>
+            <div class="kpi-value positive" id="kpi-income">0 ₽</div>
+            <div class="kpi-trend">выручка за период</div>
+          </div>
+          <div class="fox-card kpi">
+            <div class="kpi-label">Расход</div>
+            <div class="kpi-value negative" id="kpi-expense">0 ₽</div>
+            <div class="kpi-trend">по всем статьям</div>
+          </div>
+          <div class="fox-card kpi">
+            <div class="kpi-label">Прибыль</div>
+            <div class="kpi-value" id="kpi-profit">0 ₽</div>
+            <div class="kpi-trend" id="kpi-count"></div>
+          </div>
+          <div class="fox-card kpi">
+            <div class="kpi-label">Рентабельность</div>
+            <div class="kpi-value" id="kpi-margin">0 %</div>
+            <div class="kpi-trend" id="kpi-margin-tag"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="fox-card">
+            <h3 class="card-title">Динамика по месяцам</h3>
+            <div id="d-chart" class="chart"></div>
+          </div>
+          <div class="fox-card">
+            <h3 class="card-title">По проектам</h3>
+            <div id="d-projects" class="project-list"></div>
+          </div>
+        </div>
+        <div class="fox-card">
+          <h3 class="card-title">Разбивка по статьям</h3>
+          <div id="d-categories" class="cats-grid"></div>
+        </div>
+      </section>
+
+      <!-- ОПЕРАЦИИ -->
+      <section id="view-transactions" class="view hidden">
+        <div class="section-head">
+          <button class="fox-btn fox-btn--primary" id="btn-new-tx">+ Новая операция</button>
+        </div>
+        <div class="filters-row">
+          <select id="t-project" class="fox-input select-inline"></select>
+          <select id="t-type" class="fox-input select-inline">
+            <option value="">Все типы</option>
+            <option value="income">Доход</option>
+            <option value="expense">Расход</option>
+          </select>
+          <input type="date" id="t-from" class="fox-input select-inline">
+          <input type="date" id="t-to" class="fox-input select-inline">
+          <button class="fox-btn fox-btn--secondary" id="btn-tx-filter">Применить</button>
+        </div>
+        <div class="fox-card table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Дата</th><th>Тип</th><th>Сумма</th><th>Проект</th><th>Статья</th><th>Сотрудник</th><th>Комментарий</th><th></th></tr>
+            </thead>
+            <tbody id="tx-body"></tbody>
+          </table>
+          <div id="tx-pagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- ПРОЕКТЫ -->
+      <section id="view-projects" class="view hidden">
+        <div class="section-head">
+          <button class="fox-btn fox-btn--primary" id="btn-new-project">+ Новый проект</button>
+        </div>
+        <div id="projects-grid" class="cards-grid"></div>
+      </section>
+
+      <!-- СТАТЬИ -->
+      <section id="view-categories" class="view hidden">
+        <div class="section-head">
+          <button class="fox-btn fox-btn--primary" id="btn-new-cat-expense">+ Статья расходов</button>
+          <button class="fox-btn fox-btn--secondary" id="btn-new-cat-income">+ Статья дохода</button>
+        </div>
+        <div class="grid-2">
+          <div class="fox-card">
+            <h3 class="card-title">Статьи дохода</h3>
+            <div id="cat-income" class="cat-list"></div>
+          </div>
+          <div class="fox-card">
+            <h3 class="card-title">Статьи расходов</h3>
+            <div id="cat-expense" class="cat-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- СОТРУДНИКИ -->
+      <section id="view-employees" class="view hidden">
+        <div class="section-head">
+          <select id="e-project" class="fox-input select-inline"></select>
+          <button class="fox-btn fox-btn--primary" id="btn-new-employee">+ Добавить сотрудника</button>
+        </div>
+        <div class="fox-card">
+          <div id="e-list" class="cat-list"></div>
+        </div>
+      </section>
+
+      <!-- ОТЧЁТ -->
+      <section id="view-report" class="view hidden">
+        <div class="filters-row">
+          <select id="r-project" class="fox-input select-inline"></select>
+          <select id="r-category" class="fox-input select-inline"></select>
+          <select id="r-employee" class="fox-input select-inline"></select>
+          <input type="date" id="r-from" class="fox-input select-inline">
+          <input type="date" id="r-to" class="fox-input select-inline">
+          <button class="fox-btn fox-btn--primary" id="btn-report">Сформировать</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="fox-card kpi"><div class="kpi-label">Доход</div><div class="kpi-value positive" id="r-income">0 ₽</div></div>
+          <div class="fox-card kpi"><div class="kpi-label">Расход</div><div class="kpi-value negative" id="r-expense">0 ₽</div></div>
+          <div class="fox-card kpi"><div class="kpi-label">Прибыль</div><div class="kpi-value" id="r-profit">0 ₽</div></div>
+          <div class="fox-card kpi"><div class="kpi-label">Рентабельность</div><div class="kpi-value" id="r-margin">0 %</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="fox-card">
+            <h3 class="card-title">Динамика по месяцам</h3>
+            <div id="r-chart" class="chart"></div>
+          </div>
+          <div class="fox-card">
+            <h3 class="card-title">По статьям</h3>
+            <div id="r-by-cat" class="cat-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- МОДАЛКА -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card" id="modal-card">
+      <div class="modal-head">
+        <h3 id="modal-title">Название</h3>
+        <button class="icon-btn" data-close="1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="fox-toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

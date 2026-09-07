@@ -1,0 +1,8 @@
+node_modules/
+src/node_modules/
+src/data/
+*.log
+deploy-server.json
+src.tar.gz
+tmp_test/
+.eslintrc
