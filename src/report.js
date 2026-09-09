@@ -1,16 +1,28 @@
 const { db } = require('./db');
 
+function inClause(column, ids) {
+  if (ids === null || ids === undefined) return { sql: '', params: [] };
+  const pl = ids.map(() => '?').join(',');
+  return { sql: ` AND ${column} IN (${pl})`, params: ids };
+}
+
 /**
  * Сводка по проекту (или всем проектам) за период.
- * Фильтры: projectId, dateFrom (YYYY-MM-DD), dateTo, categoryId, employeeId
- * Возвращает: доход, расход, прибыль, рентабельность, кол-во операций,
- * разбивку по статьям и по месяцам.
+ * Фильтры: projectId, projectIds (массив доступных), dateFrom, dateTo, categoryId, employeeId
  */
 function buildReport(portal, filters = {}) {
   const where = ['t.portal = ?'];
   const params = [portal];
 
   if (filters.projectId) { where.push('t.project_id = ?'); params.push(filters.projectId); }
+  const scope = inClause('t.project_id', filters.projectIds);
+  if (scope.sql || (filters.projectIds && filters.projectIds.length === 0)) {
+    // пустой список доступных проектов — отчёт будет пустым за счёт scope
+  }
+  if (scope.sql) { where.push(scope.sql.slice(4)); params.push(...scope.params); }
+  else if (filters.projectIds && filters.projectIds.length === 0) {
+    where.push('1 = 0'); // нет ни одного доступного проекта
+  }
   if (filters.categoryId) { where.push('t.category_id = ?'); params.push(filters.categoryId); }
   if (filters.employeeId) { where.push('t.employee_id = ?'); params.push(filters.employeeId); }
   if (filters.dateFrom) { where.push('t.date >= ?'); params.push(filters.dateFrom); }
@@ -72,6 +84,11 @@ function listTransactions(portal, filters = {}, page = 1, perPage = 50) {
   const params = [portal];
 
   if (filters.projectId) { where.push('t.project_id = ?'); params.push(filters.projectId); }
+  const scope = inClause('t.project_id', filters.projectIds);
+  if (scope.sql) { where.push(scope.sql.slice(4)); params.push(...scope.params); }
+  else if (filters.projectIds && filters.projectIds.length === 0) {
+    where.push('1 = 0');
+  }
   if (filters.categoryId) { where.push('t.category_id = ?'); params.push(filters.categoryId); }
   if (filters.type) { where.push('t.type = ?'); params.push(filters.type); }
   if (filters.dateFrom) { where.push('t.date >= ?'); params.push(filters.dateFrom); }
@@ -92,11 +109,12 @@ function listTransactions(portal, filters = {}, page = 1, perPage = 50) {
     LIMIT ? OFFSET ?
   `).all(...params, perPage, offset);
 
-  return { total, page, perPage, items: rows };
+  return { total, page, perPage, items: rows.map(r => ({ ...r, author_name: r.author_name || '' })) };
 }
 
 /** Профит по каждому проекту (для дашборда) с учётом периода */
-function projectsSummary(portal, dateFrom, dateTo) {
+function projectsSummary(portal, dateFrom, dateTo, projectIds) {
+  const scope = inClause('p.id', projectIds);
   const rows = db.prepare(`
     SELECT p.id, p.name, p.color, p.budget,
       COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) AS income,
@@ -104,10 +122,10 @@ function projectsSummary(portal, dateFrom, dateTo) {
     FROM projects p
     LEFT JOIN transactions t ON t.project_id = p.id AND t.portal = p.portal
       AND (? IS NULL OR t.date >= ?) AND (? IS NULL OR t.date <= ?)
-    WHERE p.portal = ?
+    WHERE p.portal = ?${scope.sql}
     GROUP BY p.id
     ORDER BY income - expense DESC
-  `).all(dateFrom, dateFrom, dateTo, dateTo, portal);
+  `).all(dateFrom, dateFrom, dateTo, dateTo, portal, ...scope.params);
 
   return rows.map(p => {
     const profit = p.income - p.expense;

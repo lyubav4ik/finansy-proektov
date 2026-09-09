@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node tests/report.test.js && node tests/integration.test.js"
+  },
   "devDependencies": {
     "tar": "^7.5.22"
   }

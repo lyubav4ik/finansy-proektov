@@ -8,7 +8,6 @@
     user: null,
     projects: [],
     categories: [],
-    employees: [],
     txPage: 1,
     txTotal: 0
   };
@@ -28,78 +27,7 @@
   }
 
   /* ---------- API ---------- */
-  /* ---------- ДЕМО-ДАННЫЕ ---------- */
-  function demoSeed() {
-    state.user = { id: 1, name: 'Демо-менеджер', fullName: 'Демо-менеджер', email: 'demo@demo.ru' };
-    $('user-name').textContent = 'Демо-менеджер';
-    state.projects = [
-      { id: 1, name: 'Сайт для сети салонов', color: '#FF6B2C', budget: 500000, income: 720000, expense: 410000, profit: 310000, margin: 43.1 },
-      { id: 2, name: 'Мобильное приложение', color: '#0EA5E9', budget: 300000, income: 250000, expense: 310000, profit: -60000, margin: -24 },
-      { id: 3, name: 'Поддержка и доработки', color: '#10B981', budget: 100000, income: 180000, expense: 95000, profit: 85000, margin: 47.2 }
-    ];
-    state.categories = [
-      { id: 1, name: 'Выручка', type: 'income', is_system: 1 },
-      { id: 2, name: 'Внешние программисты', type: 'expense', is_system: 1 },
-      { id: 3, name: 'Внутренние программисты', type: 'expense', is_system: 1 },
-      { id: 4, name: 'Расходы на ИИ', type: 'expense', is_system: 1 },
-      { id: 5, name: 'Аренда сервера', type: 'expense', is_system: 1 },
-      { id: 6, name: 'Дивиденды', type: 'expense', is_system: 1 },
-      { id: 7, name: 'Реклама', type: 'expense', is_system: 0 }
-    ];
-    state.employees = [
-      { id: 1, project_id: 1, name: 'Иван Петров', role: 'тимлид' },
-      { id: 2, project_id: 1, name: 'Анна Сидорова', role: 'менеджер' },
-      { id: 3, project_id: 2, name: 'Сергей Кузнецов', role: 'разработчик' }
-    ];
-  }
-
-  /* Реализация API для демо (имитация ответов сервера) */
-  function demoApi(path, opts) {
-    var name = (opts.method || 'GET') + ' ' + path.split('?')[0];
-    return new Promise(function (resolve, reject) {
-      setTimeout(function () {
-        if (name === 'GET /api/me') return resolve(state.user);
-        if (name === 'GET /api/projects') return resolve(state.projects);
-        if (name === 'GET /api/categories') return resolve(state.categories);
-        if (name === 'GET /api/employees') return resolve(state.employees);
-        if (name === 'GET /api/report') {
-          var m = Math.random();
-          var byMonth = [
-            { month: '2026-07', income: 210000 + (m > 0.5 ? 0 : 40000), expense: 120000, profit: 90000 },
-            { month: '2026-08', income: 260000, expense: 140000, profit: 120000 },
-            { month: '2026-09', income: 310000, expense: 150000, profit: 160000 }
-          ];
-          return resolve({
-            income: 780000, expense: 410000, profit: 370000, margin: 47.4, count: 34,
-            byCategory: [
-              { id: 1, name: 'Выручка', type: 'income', total: 780000 },
-              { id: 2, name: 'Внешние программисты', type: 'expense', total: 150000 },
-              { id: 4, name: 'Расходы на ИИ', type: 'expense', total: 42000 },
-              { id: 5, name: 'Аренда сервера', type: 'expense', total: 18000 },
-              { id: 3, name: 'Внутренние программисты', type: 'expense', total: 200000 }
-            ],
-            byMonth: byMonth
-          });
-        }
-        if (name === 'GET /api/transactions') {
-          return resolve({ total: 5, page: 1, perPage: 50, items: [
-            { id: 1, date: '2026-09-05', type: 'income', amount: 150000, project_name: 'Сайт для сети салонов', category_name: 'Выручка', employee_name: 'Иван Петров', comment: 'Аванс 2 этап' },
-            { id: 2, date: '2026-09-04', type: 'expense', amount: 55000, project_name: 'Сайт для сети салонов', category_name: 'Внешние программисты', employee_name: '', comment: 'Фрилансер' },
-            { id: 3, date: '2026-09-02', type: 'expense', amount: 12000, project_name: 'Мобильное приложение', category_name: 'Расходы на ИИ', employee_name: 'Сергей Кузнецов', comment: 'Claude подписка' },
-            { id: 4, date: '2026-08-29', type: 'income', amount: 30000, project_name: 'Поддержка и доработки', category_name: 'Выручка', employee_name: 'Анна Сидорова', comment: '' },
-            { id: 5, date: '2026-08-27', type: 'expense', amount: 18000, project_name: 'Поддержка и доработки', category_name: 'Реклама', employee_name: '', comment: '' }
-          ] });
-        }
-        if (name === 'GET /api/portal-users') return resolve([{ id: 1, name: 'Иван Петров', email: '' }, { id: 2, name: 'Анна Сидорова', email: '' }]);
-        if (name.startsWith('POST /api/')) return resolve({ id: 99 });
-        if (name.startsWith('DELETE /api/')) return resolve(null);
-        resolve(null);
-      }, 120);
-    });
-  }
-
   function api(path, opts) {
-    if (state.demo) return demoApi(path, opts);
     opts = opts || {};
     return fetch('/api' + path, {
       method: opts.method || 'GET',
@@ -140,51 +68,97 @@
   function boot() {
     var bootEl = $('boot');
 
-    // Демо-режим: показ интерфейса без портала (?demo в URL, вне Битрикс24)
-    if (!window.BX24 && /demo/.test(window.location.search)) {
-      bootEl.classList.add('hidden');
-      $('app').classList.remove('hidden');
-      state.portal = 'demo.ru';
-      state.demo = true;
-      demoSeed();
-      start();
-      return;
-    }
-
-    function requireSdk() {
-      bootEl.innerHTML =
-        '<div class="boot-card"><div class="boot-logo">🦊</div>' +
-        '<h1>Финансы проектов</h1>' +
-        '<p>Приложение работает внутри Битрикс24. Откройте его из меню вашего портала.</p></div>';
+    // Запасной путь: если SDK не отвечает — спрашиваем сервер, какой портал установлен,
+    // и входим сохранённым при установке токеном.
+    function enterByServerPortal() {
+      fetch('/api/portal').then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.portal) {
+          state.portal = String(d.portal).toLowerCase();
+          state.token = '';
+          bootEl.classList.add('hidden');
+          $('app').classList.remove('hidden');
+          start();
+          toast('Вход через установку портала');
+          return;
+        }
+        failBoot('Приложение не установлено на портал или установок несколько. Откройте его из меню Битрикс24.');
+      }).catch(function () {
+        failBoot('Не удалось подключиться к серверу приложения.');
+      });
     }
 
     if (!window.BX24 || typeof BX24.init !== 'function') {
-      // Попытка демо-режима из localStorage (для локального просмотра дизайна)
-      var demo = JSON.parse(localStorage.getItem('finansy_demo') || 'null');
-      if (demo && demo.token) {
-        state.portal = demo.portal;
-        state.token = demo.token;
+      enterByServerPortal();
+      return;
+    }
+
+    var done = false;
+    var failTimer = setTimeout(function () {
+      if (!done) enterByServerPortal();
+    }, 4000);
+
+    function finish(auth) {
+      if (done) return;
+      if (auth && auth.access_token && auth.domain) {
+        done = true;
+        clearTimeout(failTimer);
+        state.portal = String(auth.domain).toLowerCase();
+        state.token = auth.access_token;
+        bootEl.classList.add('hidden');
+        $('app').classList.remove('hidden');
         start();
         return;
       }
-      requireSdk();
-      return;
+      // токена нет — пробуем домен, иначе серверный портал
+      try {
+        BX24.getDomain(function (domain) {
+          if (done) return;
+          if (domain) {
+            done = true;
+            clearTimeout(failTimer);
+            state.portal = String(domain).toLowerCase();
+            state.token = '';
+            bootEl.classList.add('hidden');
+            $('app').classList.remove('hidden');
+            start();
+            return;
+          }
+          if (!done) enterByServerPortal();
+        });
+      } catch (e) {
+        if (!done) enterByServerPortal();
+      }
     }
 
     try {
       BX24.init(function () {
-        BX24.getAuth(function (auth) {
-          if (!auth || !auth.access_token) { requireSdk(); return; }
-          state.portal = (auth.domain || '').toLowerCase();
-          state.token = auth.access_token;
-          bootEl.classList.add('hidden');
-          $('app').classList.remove('hidden');
-          start();
-        });
+        try {
+          BX24.getAuth(finish);
+        } catch (e) {
+          finish(null);
+        }
       });
     } catch (e) {
-      requireSdk();
+      clearTimeout(failTimer);
+      enterByServerPortal();
     }
+  }
+
+  function failBoot(msg) {
+    var boot = $('boot');
+    boot.querySelector('p').textContent = '';
+    var card = boot.querySelector('.boot-card');
+    var p = document.createElement('p');
+    p.style.color = '#C2410C';
+    p.textContent = msg;
+    var btn = document.createElement('button');
+    btn.className = 'fox-btn fox-btn--primary';
+    btn.style.marginTop = '18px';
+    btn.textContent = 'Обновить';
+    btn.onclick = function () { window.location.reload(); };
+    boot.querySelector('.fox-spinner').style.display = 'none';
+    card.appendChild(p);
+    card.appendChild(btn);
   }
 
   function start() {
@@ -199,18 +173,42 @@
       api('/me').then(function (u) {
         state.user = u;
         $('user-name').textContent = u.fullName || u.name || '';
+        if (u.admin) { $('tab-access').classList.remove('hidden'); }
       }),
       api('/projects').then(function (p) { state.projects = p; }),
-      api('/categories').then(function (c) { state.categories = c; }),
-      api('/employees').then(function (e) { state.employees = e; })
+      api('/categories').then(function (c) { state.categories = c; })
     ]).catch(function (err) {
       showError('Ошибка загрузки: ' + err.message);
     }).then(function () {
       fillSelects();
+      applyPermButtons();
       renderDashboard();
       updateViews();
       hideLoading();
     });
+  }
+
+  /* Прячем кнопки создания/удаления, если нет прав */
+  function applyPermButtons() {
+    var shown = function (id, ok) { if ($(id)) $(id).classList.toggle('hidden', !ok); };
+    shown('btn-new-project', canGlobal('createProject'));
+    shown('btn-new-tx', canGlobal('createTx') || state.projects.some(function (p) { return canOnProject(p.id, 2); }));
+    shown('btn-new-cat-expense', canGlobal('manageCategory'));
+    shown('btn-new-cat-income', canGlobal('manageCategory'));
+  }
+
+  /* Эффективная роль для проекта: project_access → глобальная */
+  function projectRole(pid) {
+    if (state.user && state.user.projectRoles && state.user.projectRoles[pid] != null) return state.user.projectRoles[pid];
+    return state.user ? state.user.role : 'none';
+  }
+  function canOnProject(pid, need) {
+    var lvl = { none: 0, viewer: 1, editor: 2, full: 3, admin: 4 };
+    var r = projectRole(pid);
+    return (lvl[r] || 0) >= need;
+  }
+  function canGlobal(permName) {
+    return !!(state.user && state.user.perm && state.user.perm[permName]);
   }
 
   function fillSelects() {
@@ -220,30 +218,22 @@
       opts += '<option value="' + p.id + '">' + esc(p.name) + '</option>';
       empty += '<option value="' + p.id + '">' + esc(p.name) + '</option>';
     });
-    ['d-project', 't-project', 'r-project'].forEach(function (id) { $(id).innerHTML = empty; });
-    ['e-project'].forEach(function (id) { $(id).innerHTML = opts; });
+    ['d-project', 't-project'].forEach(function (id) { $(id).innerHTML = empty; });
 
     var cats = '<option value="">Все статьи</option>';
     state.categories.forEach(function (c) {
       cats += '<option value="' + c.id + '">' + esc(c.name) + '</option>';
     });
-    $('r-category').innerHTML = cats;
-
-    // Сотрудники в отчёте
-    var emps = '<option value="">Все сотрудники</option>';
-    var seen = {};
-    state.employees.forEach(function (e) {
-      if (!seen[e.id]) { seen[e.id] = 1; emps += '<option value="' + e.id + '">' + esc(e.name) + '</option>'; }
-    });
-    $('r-employee').innerHTML = emps;
+    $('d-category').innerHTML = cats;
   }
 
-  /* ---------- ДАШБОРД ---------- */
+  /* ---------- АНАЛИТИКА ---------- */
   function renderDashboard() {
     var projectId = $('d-project').value;
-    var from = monthToDate($('d-month-from').value);
-    var to = monthToDate($('d-month-to').value);
-    var qs = httpQuery({ project_id: projectId, date_from: from, date_to: to });
+    var categoryId = $('d-category').value;
+    var from = $('d-from').value || null;
+    var to = $('d-to').value || null;
+    var qs = httpQuery({ project_id: projectId, category_id: categoryId, date_from: from, date_to: to });
 
     api('/report' + qs).then(function (r) {
       $('kpi-income').textContent = money(r.income);
@@ -255,17 +245,8 @@
       $('kpi-count').textContent = 'операций: ' + r.count;
       renderChart($('d-chart'), r.byMonth);
       renderCats($('d-categories'), r.byCategory);
-      loadProjectsSummary();
-    }).catch(function (err) { showError('Ошибка отчёта: ' + err.message); });
-  }
-
-  function loadProjectsSummary() {
-    var from = monthToDate($('d-month-from').value);
-    var to = monthToDate($('d-month-to').value);
-    api('/report' + httpQuery({ date_from: from, date_to: to })).then(function () {
-      // суммарный отчёт уже есть; берём данные проектов из списка
       renderProjectList($('d-projects'), state.projects);
-    });
+    }).catch(function (err) { showError('Ошибка отчёта: ' + err.message); });
   }
 
   function renderProjectList(el, arr) {
@@ -326,6 +307,7 @@
       $('tx-body').innerHTML = r.items.map(function (t) {
         var cls = t.type === 'income' ? 'in' : 'out';
         var sign = t.type === 'income' ? '+' : '−';
+        var canDel = canOnProject(t.project_id, 3);
         return '<tr>' +
           '<td>' + esc(t.date) + '</td>' +
           '<td><span class="badge ' + (t.type === 'income' ? 'badge-income' : 'badge-expense') + '">' +
@@ -333,10 +315,12 @@
           '<td class="txt-amount ' + cls + '">' + sign + ' ' + money(t.amount) + '</td>' +
           '<td>' + esc(t.project_name) + '</td>' +
           '<td>' + esc(t.category_name) + '</td>' +
-          '<td>' + esc(t.employee_name || '—') + '</td>' +
+          '<td>' + esc(t.author_name || '—') + '</td>' +
           '<td>' + esc(t.comment || '') + '</td>' +
-          '<td><button class="icon-btn del-tx" data-id="' + t.id + '" title="Удалить">' +
-          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>' +
+          '<td>' + (canDel
+            ? '<button class="icon-btn del-tx" data-id="' + t.id + '" title="Удалить">' +
+              '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
+            : '') + '</td>' +
         '</tr>';
       }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--fox-text-secondary);padding:24px">Операций нет</td></tr>';
       var pages = Math.max(1, Math.ceil(r.total / r.perPage));
@@ -356,17 +340,36 @@
   /* ---------- ПРОЕКТЫ ---------- */
   function renderProjects() {
     var el = $('projects-grid');
+    if (!state.projects.length) {
+      var canCreate = canGlobal('createProject');
+      el.innerHTML =
+        '<div class="fox-card empty-projects">' +
+        '<div class="empty-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--fox-orange)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>' +
+        '<h3 class="empty-title">Проектов пока нет</h3>' +
+        '<p class="empty-sub">Создайте первый проект, чтобы учитывать его доходы и расходы и видеть рентабельность.</p>' +
+        (canCreate
+          ? '<button class="fox-btn fox-btn--primary fox-btn--lg" id="btn-empty-project">+ Создать первый проект</button>'
+          : '<p class="muted" style="margin:8px 0 0">Создавать проекты может администратор или редактор.</p>') +
+        '</div>';
+      var b = $('btn-empty-project');
+      if (b) b.onclick = function () { modalProject(); };
+      return;
+    }
     el.innerHTML = state.projects.map(function (p) {
+      var canEdit = canOnProject(p.id, 2);
+      var canDelete = canOnProject(p.id, 3);
+      var isAdmin = state.user && state.user.admin;
+      var actions = '';
+      if (canEdit) actions += '<button class="fox-btn fox-btn--secondary fox-btn--sm edit-project" data-id="' + p.id + '">Изменить</button>';
+      if (canDelete) actions += '<button class="fox-btn fox-btn--danger fox-btn--sm del-project" data-id="' + p.id + '">Удалить</button>';
+      if (isAdmin) actions += '<button class="fox-btn fox-btn--secondary fox-btn--sm pr-access" data-id="' + p.id + '">Доступ</button>';
       return '<div class="fox-card project-card" style="--pcolor:' + esc(p.color) + '">' +
         '<div class="p-name">' + esc(p.name) + '</div>' +
         '<div class="p-metrics"><span><span class="m-label">Доход:</span> +' + money(p.income) + '</span>' +
         '<span><span class="m-label">Расход:</span> −' + money(p.expense) + '</span></div>' +
         '<div class="p-metrics"><span><span class="m-label">Прибыль:</span> ' + money(p.profit) + '</span>' +
         '<span><span class="m-label">Рент.:</span> ' + Number(p.margin).toLocaleString('ru-RU') + '%</span></div>' +
-        '<div class="p-actions">' +
-        '<button class="fox-btn fox-btn--secondary fox-btn--sm edit-project" data-id="' + p.id + '">Изменить</button>' +
-        '<button class="fox-btn fox-btn--danger fox-btn--sm del-project" data-id="' + p.id + '">Удалить</button>' +
-        '</div></div>';
+        '<div class="p-actions">' + actions + '</div></div>';
     }).join('') || '<div class="fox-card" style="color:var(--fox-text-secondary)">Проектов пока нет.</div>';
   }
 
@@ -380,57 +383,12 @@
 
   function catList(arr) {
     return arr.map(function (c) {
-      var del = c.is_system ? '' :
+      var del = (c.is_system || !canGlobal('deleteCategory')) ? '' :
         '<button class="icon-btn del-cat" data-id="' + c.id + '" title="Удалить">' +
         '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
       return '<div class="cat-item"><div><div class="c-name">' + esc(c.name) + '</div>' +
         (c.is_system ? '<div class="c-tag">системная</div>' : '') + '</div>' + del + '</div>';
     }).join('');
-  }
-
-  /* ---------- СОТРУДНИКИ ---------- */
-  function renderEmployees() {
-    var pid = $('e-project').value;
-    var arr = pid ? state.employees.filter(function (e) { return String(e.project_id) === pid; }) : state.employees;
-    // группируем по проектам
-    var el = $('e-list');
-    if (!pid) {
-      el.innerHTML = '<p style="color:var(--fox-text-secondary);padding:8px">Выберите проект, чтобы увидеть его сотрудников.</p>';
-      return;
-    }
-    var proj = state.projects.find(function (p) { return String(p.id) === pid; });
-    el.innerHTML = '<div class="cat-item" style="font-weight:600">Проект: ' + esc(proj ? proj.name : '') + '</div>' +
-      arr.map(function (e) {
-        return '<div class="cat-item"><div><div class="c-name">' + esc(e.name) + '</div>' +
-          '<div class="c-tag">' + esc(e.role || 'Участник') + '</div></div>' +
-          '<button class="icon-btn del-emp" data-id="' + e.id + '" title="Удалить">' +
-          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>';
-      }).join('') || '<div class="cat-item">Сотрудников в проекте нет.</div>';
-  }
-
-  /* ---------- ОТЧЁТ ---------- */
-  function renderReport() {
-    showLoading(); hideError();
-    var qs = httpQuery({
-      project_id: $('r-project').value,
-      category_id: $('r-category').value,
-      employee_id: $('r-employee').value,
-      date_from: $('r-from').value || null,
-      date_to: $('r-to').value || null
-    });
-    api('/report' + qs).then(function (r) {
-      $('r-income').textContent = money(r.income);
-      $('r-income').className = 'kpi-value positive';
-      $('r-expense').textContent = money(r.expense);
-      $('r-expense').className = 'kpi-value negative';
-      $('r-profit').textContent = money(r.profit);
-      $('r-profit').className = 'kpi-value' + (r.profit >= 0 ? ' positive' : ' negative');
-      $('r-margin').textContent = r.margin.toLocaleString('ru-RU') + ' %';
-      $('r-margin').className = 'kpi-value' + (r.margin >= 0 ? ' positive' : ' negative');
-      renderChart($('r-chart'), r.byMonth);
-      renderCats($('r-by-cat'), r.byCategory);
-      hideLoading();
-    }).catch(function (err) { hideLoading(); showError('Ошибка: ' + err.message); });
   }
 
   /* ---------- МОДАЛКИ ---------- */
@@ -447,9 +405,10 @@
   function modalTx(id) {
     var tx = null;
     if (id) { tx = { id: id }; }
-    var projOpts = state.projects.map(function (p) {
+    var projOpts = state.projects.filter(function (p) { return canOnProject(p.id, 2); }).map(function (p) {
       return '<option value="' + p.id + '">' + esc(p.name) + '</option>';
     }).join('');
+    if (!projOpts) { toast('Нет проектов с правом на изменение', 'error'); return; }
     var catOpts = state.categories.map(function (c) {
       return '<option value="' + c.id + '" data-type="' + c.type + '">' + esc(c.name) + '</option>';
     }).join('');
@@ -457,13 +416,8 @@
       '<div class="field"><label>Проект</label><select id="m-proj" class="fox-input">' + projOpts + '</select></div>',
       '<div class="field"><label>Статья</label><select id="m-cat" class="fox-input">' + catOpts + '</select></div>',
       '<div class="row-2">',
-      '<div class="field"><label>Тип</label><select id="m-type" class="fox-input"><option value="income">Доход</option><option value="expense">Расход</option></select></div>',
       '<div class="field"><label>Сумма, ₽</label><input id="m-amount" type="number" min="0.01" step="0.01" class="fox-input" placeholder="0"></div>',
-      '</div>',
-      '<div class="row-2">',
       '<div class="field"><label>Дата</label><input id="m-date" type="date" class="fox-input" value="' + (new Date().toISOString().slice(0, 10)) + '"></div>',
-      '<div class="field"><label>Сотрудник</label><select id="m-emp" class="fox-input"><option value="">— не указывать —</option>' +
-      state.employees.map(function (e) { return '<option value="' + e.id + '">' + esc(e.name) + '</option>'; }).join('') + '</select></div>',
       '</div>',
       '<div class="field"><label>Комментарий</label><input id="m-com" class="fox-input" placeholder="Назначение платежа…"></div>',
       '<div class="modal-actions"><button class="fox-btn fox-btn--secondary" id="m-cancel">Отмена</button>' +
@@ -472,8 +426,9 @@
     $('m-cancel').onclick = closeModal;
     $('m-save').onclick = function () {
       var catId = $('m-cat').value;
+      if (!catId) { toast('Выберите статью', 'error'); return; }
       var cat = state.categories.find(function (c) { return String(c.id) === catId; });
-      var type = cat ? cat.type : $('m-type').value;
+      var type = cat ? cat.type : 'expense';
       api('/transactions' + (id ? '/' + id : ''), {
         method: id ? 'PATCH' : 'POST',
         body: {
@@ -482,7 +437,6 @@
           type: type,
           amount: parseFloat($('m-amount').value),
           date: $('m-date').value,
-          employee_id: $('m-emp').value || null,
           comment: $('m-com').value
         }
       }).then(function () {
@@ -490,11 +444,6 @@
         toast(id ? 'Операция обновлена' : 'Операция добавлена');
         loadAll();
       }).catch(function (err) { toast(err.message, 'error'); });
-    };
-    // при смене статьи подставляем тип
-    $('m-cat').onchange = function () {
-      var c = state.categories.find(function (x) { return String(x.id) === $('m-cat').value; });
-      $('m-type').value = c ? c.type : 'income';
     };
   }
 
@@ -507,25 +456,88 @@
         '<input type="radio" name="m-color" value="' + c + '" ' + (checked ? 'checked' : '') + ' style="accent-color:' + c + '">' +
         '<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:' + c + ';margin-left:4px"></span></label>';
     }).join('');
+    var isAdmin = state.user && state.user.admin;
+    // секция прав на проект (только админ) — подгружается асинхронно
+    var accessSection = isAdmin
+      ? '<div class="field"><label>Права на этот проект</label><div id="proj-access"><span class="muted">Загрузка прав…</span></div></div>'
+      : '';
     openModal(id ? 'Редактировать проект' : 'Новый проект', [
       '<div class="field"><label>Название</label><input id="p-name" class="fox-input" value="' + esc(p ? p.name : '') + '" placeholder="Например: Сайт для сети салонов"></div>',
       '<div class="field"><label>Бюджет, ₽ (ориентир расходов)</label><input id="p-budget" type="number" min="0" class="fox-input" value="' + (p ? p.budget : '') + '"></div>',
       '<div class="field"><label>Цвет</label><div>' + colorOpts + '</div></div>',
+      accessSection,
       '<div class="modal-actions"><button class="fox-btn fox-btn--secondary" id="m-cancel">Отмена</button>' +
       '<button class="fox-btn fox-btn--primary" id="m-save">Сохранить</button></div>'
     ].join(''));
+    if (isAdmin) loadProjectAccessBlock($('proj-access'), id);
     $('m-cancel').onclick = closeModal;
     $('m-save').onclick = function () {
       var color = (document.querySelector('input[name=m-color]:checked') || {}).value || '#FF6B2C';
       api('/projects' + (id ? '/' + id : ''), {
         method: id ? 'PATCH' : 'POST',
         body: { name: $('p-name').value, budget: parseFloat($('p-budget').value) || 0, color: color }
+      }).then(function (saved) {
+        var pid = saved ? saved.id : parseInt(id, 10);
+        return saveProjectAccess(pid).then(function () { return saved; });
       }).then(function () {
         closeModal();
         toast(id ? 'Проект обновлён' : 'Проект создан');
         loadAll();
       }).catch(function (err) { toast(err.message, 'error'); });
     };
+  }
+
+  /* Права на конкретный проект: группы ролей с чипами (как в общих доступах) */
+  function projectRoleGroupsHtml(users, departments) {
+    return ACCESS_ROLES.map(function (g) {
+      var userChips = (users || []).filter(function (u) { return u.role === g.role; }).map(function (u) {
+        return chipHtml('user', u.id, u.name);
+      }).join('');
+      var deptChips = (departments || []).filter(function (d) { return d.role === g.role; }).map(function (d) {
+        return chipHtml('dept', d.id, d.name);
+      }).join('');
+      return '<div class="ac-group ac-group--' + g.role + '" data-role="' + g.role + '">' +
+        '<div class="ac-group-head"><b>' + g.label + '</b><span>' + g.desc + '</span></div>' +
+        '<div class="ac-chips">' + userChips + deptChips + '</div>' +
+        '<button type="button" class="fox-btn fox-btn--secondary fox-btn--sm ac-add">+ Добавить</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* Загрузить текущие права на проект в контейнер прав */
+  function loadProjectAccessBlock(container, pid) {
+    function renderEmpty() { container.innerHTML = projectRoleGroupsHtml([], []) || ''; bindAccessEvents(); }
+    if (!pid) { renderEmpty(); return; }
+    api('/access').then(function (d) {
+      var proj = (d.projects || []).find(function (p) { return String(p.id) === String(pid); });
+      container.innerHTML = projectRoleGroupsHtml(proj ? proj.users : [], proj ? proj.departments : []) || '';
+      bindAccessEvents();
+    }).catch(function (err) { container.innerHTML = '<span class="muted">Не удалось загрузить права: ' + esc(err.message) + '</span>'; });
+  }
+
+  /* Сохранить права на проект (все grants разом) */
+  function saveProjectAccess(pid) {
+    var cont = $('proj-access');
+    if (!cont) return Promise.resolve();
+    var retry = 0;
+    function wait() {
+      return new Promise(function (resolve, reject) {
+        var t = setInterval(function () {
+          if (cont.querySelectorAll('.ac-group').length) {
+            clearInterval(t);
+            resolve();
+          } else if (++retry > 40) {
+            clearInterval(t);
+            resolve(); // всё равно сохраним то, что есть
+          }
+        }, 100);
+      });
+    }
+    return wait().then(function () {
+      var grants = collectGrants('proj-access');
+      return api('/access/project', { method: 'POST', body: { project_id: parseInt(pid, 10), grants: grants } })
+        .then(function () { return grants; });
+    });
   }
 
   function modalCategory(type) {
@@ -545,41 +557,26 @@
     };
   }
 
-  function modalEmployee(pid) {
-    pid = pid || $('e-project').value;
-    if (!pid) { toast('Сначала выберите проект', 'error'); return; }
-    var proj = state.projects.find(function (p) { return String(p.id) === pid; });
-    // пользователи портала
-    api('/portal-users').then(function (users) {
-      var opts = '<option value="">Ввести вручную</option>' +
-        users.map(function (u) { return '<option value="' + u.id + '">' + esc(u.name) + '</option>'; }).join('');
-      openModal('Добавить сотрудника в «' + esc(proj ? proj.name : '') + '»', [
-        '<div class="field"><label>Сотрудник Битрикс24 (или вручную)</label><select id="e-name-select" class="fox-input">' + opts + '</select></div>',
-        '<div class="field"><label>Имя (если вручную)</label><input id="e-name" class="fox-input" placeholder="ФИО"></div>',
-        '<div class="field"><label>Роль</label><input id="e-role" class="fox-input" placeholder="Например: тимлид, менеджер"></div>',
+  /* Права на конкретный проект (админ, из карточки проекта) */
+  function modalProjectAccess(pid) {
+    var proj = state.projects.find(function (p) { return String(p.id) === String(pid); });
+    api('/access').then(function (d) {
+      var pacc = (d.projects || []).find(function (p) { return String(p.id) === String(pid); }) || { users: [], departments: [] };
+      openModal('Доступ к проекту «' + esc(proj ? proj.name : '') + '»', [
+        '<div id="proj-access" style="margin-bottom:14px">' + projectRoleGroupsHtml(pacc.users, pacc.departments) + '</div>',
         '<div class="modal-actions"><button class="fox-btn fox-btn--secondary" id="m-cancel">Отмена</button>' +
-        '<button class="fox-btn fox-btn--primary" id="m-save">Добавить</button></div>'
+        '<button class="fox-btn fox-btn--primary" id="m-save-pac">Сохранить</button></div>'
       ].join(''));
+      bindAccessEvents();
       $('m-cancel').onclick = closeModal;
-      $('e-name-select').onchange = function () {
-        $('e-name').value = $('e-name-select').selectedOptions[0] && $('e-name-select').selectedOptions[0].text;
-      };
-      $('m-save').onclick = function () {
-        api('/employees', {
-          method: 'POST',
-          body: {
-            project_id: pid,
-            bitrix_user_id: $('e-name-select').value || null,
-            name: $('e-name').value.trim(),
-            role: $('e-role').value.trim()
-          }
-        }).then(function () {
+      $('m-save-pac').onclick = function () {
+        saveProjectAccess(pid).then(function () {
           closeModal();
-          toast('Сотрудник добавлен');
+          toast('Права на проект сохранены');
           loadAll();
         }).catch(function (err) { toast(err.message, 'error'); });
       };
-    }).catch(function (err) { toast('Не удалось получить пользователей: ' + err.message, 'error'); });
+    }).catch(function (err) { toast('Ошибка: ' + err.message, 'error'); });
   }
 
   /* ---------- СОБЫТИЯ ---------- */
@@ -589,21 +586,26 @@
       tab.onclick = function () {
         document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
         document.querySelectorAll('.view').forEach(function (v) { v.classList.add('hidden'); });
+        tab.classList.remove('hidden');
         tab.classList.add('active');
         $('view-' + tab.dataset.tab).classList.remove('hidden');
         updateViews();
       };
     });
 
+    // доступы
+    $('btn-access-save').onclick = saveAccess;
+
     // закрытие модалки
     document.querySelectorAll('[data-close]').forEach(function (el) {
       el.onclick = closeModal;
     });
 
-    // дашборд фильтры
-    ['d-project', 'd-month-from', 'd-month-to'].forEach(function (id) {
+    // аналитика фильтры
+    ['d-project', 'd-category'].forEach(function (id) {
       $(id).onchange = renderDashboard;
     });
+    $('btn-d-report').onclick = renderDashboard;
 
     // транзакции
     $('btn-new-tx').onclick = function () { modalTx(); };
@@ -627,6 +629,8 @@
     $('projects-grid').onclick = function (e) {
       var edit = e.target.closest('.edit-project');
       var del = e.target.closest('.del-project');
+      var acc = e.target.closest('.pr-access');
+      if (acc) { modalProjectAccess(acc.dataset.id); return; }
       if (edit) { modalProject(edit.dataset.id); return; }
       if (del) {
         if (!confirm('Удалить проект и все его операции?')) return;
@@ -642,22 +646,6 @@
     $('btn-new-cat-income').onclick = function () { modalCategory('income'); };
     $('cat-income').onclick = catDeleteClick;
     $('cat-expense').onclick = catDeleteClick;
-
-    // сотрудники
-    $('btn-new-employee').onclick = function () { modalEmployee(); };
-    $('e-project').onchange = renderEmployees;
-    $('e-list').onclick = function (e) {
-      var del = e.target.closest('.del-emp');
-      if (!del) return;
-      if (!confirm('Удалить сотрудника из проекта?')) return;
-      api('/employees/' + del.dataset.id, { method: 'DELETE' }).then(function () {
-        toast('Сотрудник удалён');
-        loadAll();
-      }).catch(function (err) { toast(err.message, 'error'); });
-    };
-
-    // отчёт
-    $('btn-report').onclick = renderReport;
 
     // экспорт
     $('btn-export').onclick = function () {
@@ -696,9 +684,145 @@
       case 'transactions': loadTransactions(); break;
       case 'projects': renderProjects(); break;
       case 'categories': renderCategories(); break;
-      case 'employees': renderEmployees(); break;
-      case 'report': renderReport(); break;
+      case 'access': renderAccess(); break;
     }
+  }
+
+  /* ---------- ДОСТУПЫ ---------- */
+  var accessData = { users: [], departments: [], projects: [], firstTime: false };
+  var ACCESS_ROLES = [
+    { role: 'admin', label: 'Админ', desc: 'полный доступ и управление правами' },
+    { role: 'full', label: 'Вносит и удаляет', desc: 'создаёт, редактирует и удаляет всё' },
+    { role: 'editor', label: 'Вносит изменения', desc: 'создаёт и редактирует, не удаляет' },
+    { role: 'viewer', label: 'Только чтение', desc: 'видит данные, ничего не меняет' }
+  ];
+
+  function renderAccess() {
+    return api('/access').then(function (d) {
+      accessData = { users: d.users || [], departments: d.departments || [], projects: d.projects || [], firstTime: !!d.firstTime };
+      renderAccessGroups();
+    }).catch(function (err) { showError('Ошибка доступов: ' + err.message); });
+  }
+
+  /* Чип выбранного сотрудника / отдела */
+  function chipHtml(kind, id, name) {
+    var icon = kind === 'dept'
+      ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+      : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    return '<span class="ac-chip ' + (kind === 'dept' ? 'ac-chip--dept' : '') + '" data-kind="' + kind + '" data-id="' + id + '" data-name="' + esc(name) + '">' +
+      icon + '<span>' + esc(name) + '</span>' +
+      '<button type="button" class="chip-x" title="Убрать">' +
+      '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+      '</button></span>';
+  }
+
+  /* Открыть штатный выбор Битрикс24 (или fallback-список) и добавить чипы в группу */
+  function openUserPicker(role, container) {
+    var dash = container.querySelector('.ac-chips');
+
+    function addPicked(result) {
+      (result || []).forEach(function (it) {
+        var kind;
+        var id;
+        var idMatch = /^(DR?)(\d+)$/.exec(it.id || '');
+        var uMatch = /^U(\d+)$/.exec(it.id || '');
+        if (uMatch) { kind = 'user'; id = uMatch[1]; }
+        else if (idMatch) { kind = 'dept'; id = idMatch[2]; }
+        else if (it.provider === 'user') { kind = 'user'; id = /^U(\d+)$/.exec(it.id); id = id && id[1]; }
+        else return; // группы (SG/…) и AU/G2/CR в права проекта не добавляем
+        if (!id) return;
+        var name = it.name || (kind === 'dept' ? 'Отдел ' + id : 'ID ' + id);
+        // убираем дубль из других ролей
+        container.querySelectorAll('.ac-chips .ac-chip[data-kind="' + kind + '"][data-id="' + id + '"]').forEach(function (c) { c.remove(); });
+        dash.insertAdjacentHTML('beforeend', chipHtml(kind, id, name));
+      });
+    }
+
+    if (window.BX24 && typeof BX24.selectAccess === 'function') {
+      BX24.selectAccess(addPicked);
+      return;
+    }
+    // fallback вне Битрикс24: простой выбор из списков
+    Promise.all([api('/portal-users'), api('/departments')]).then(function (rs) {
+      var users = rs[0] || [], depts = rs[1] || [];
+      var rows = users.map(function (u) {
+        var hit = dash.querySelector('.ac-chip[data-kind="user"][data-id="' + u.id + '"]');
+        return '<label class="ac-member" style="display:block"><input type="checkbox" class="fb-pick" data-kind="user" data-id="' + u.id + '" data-name="' + esc(u.name) + '"' +
+          (hit ? ' checked' : '') + '><span class="ac-name">' + esc(u.name) + '</span></label>';
+      }).join('');
+      rows += depts.map(function (d) {
+        var hit = dash.querySelector('.ac-chip[data-kind="dept"][data-id="' + d.id + '"]');
+        return '<label class="ac-member" style="display:block"><input type="checkbox" class="fb-pick" data-kind="dept" data-id="' + d.id + '" data-name="' + esc(d.name || ('Отдел ' + d.id)) + '"' +
+          (hit ? ' checked' : '') + '><span class="ac-name">' + esc(d.name || ('Отдел ' + d.id)) + '</span></label>';
+      }).join('');
+      openModal('Выбрать сотрудников и отделы', [
+        '<div style="max-height:300px;overflow:auto;margin-bottom:12px">' + rows + '</div>',
+        '<div class="modal-actions"><button class="fox-btn fox-btn--secondary" id="m-cancel">Отмена</button>' +
+        '<button class="fox-btn fox-btn--primary" id="m-pick-ok">Добавить</button></div>'
+      ].join(''));
+      $('m-cancel').onclick = closeModal;
+      $('m-pick-ok').onclick = function () {
+        var picked = [];
+        document.querySelectorAll('.fb-pick:checked').forEach(function (c) {
+          picked.push({ id: (c.dataset.kind === 'dept' ? 'D' : 'U') + c.dataset.id, name: c.dataset.name });
+        });
+        closeModal();
+        addPicked(picked);
+      };
+    }).catch(function (err) { toast('Не удалось загрузить списки: ' + err.message, 'error'); });
+  }
+
+  /* Общие доступы: 4 роли, под каждой — кнопка «+ Добавить» и чипы */
+  function renderAccessGroups() {
+    var el = $('access-groups');
+    var selfId = state.user ? String(state.user.id) : '';
+    el.innerHTML = ACCESS_ROLES.map(function (g) {
+      var userChips = accessData.users.filter(function (u) { return u.globalRole === g.role; }).map(function (u) {
+        return chipHtml('user', u.id, u.name);
+      }).join('');
+      var deptChips = accessData.departments.filter(function (d) { return d.globalRole === g.role; }).map(function (d) {
+        return chipHtml('dept', d.id, d.name);
+      }).join('');
+      return '<div class="ac-group ac-group--' + g.role + '" data-role="' + g.role + '">' +
+        '<div class="ac-group-head"><b>' + g.label + '</b><span>' + g.desc + '</span></div>' +
+        '<div class="ac-chips">' + userChips + deptChips + '</div>' +
+        '<button type="button" class="fox-btn fox-btn--secondary fox-btn--sm ac-add">+ Добавить</button>' +
+        '</div>';
+    }).join('');
+    bindAccessEvents();
+  }
+
+  function bindAccessEvents() {
+    document.querySelectorAll('.ac-group').forEach(function (group) {
+      group.querySelector('.ac-add').onclick = function () { openUserPicker(group.dataset.role, group); };
+      group.querySelector('.ac-chips').onclick = function (e) {
+        var x = e.target.closest('.chip-x');
+        if (x) x.closest('.ac-chip').remove();
+      };
+    });
+  }
+
+  function collectGrants(scopeTab) {
+    var grants = [];
+    document.querySelectorAll((scopeTab ? '#' + scopeTab : '#access-groups') + ' .ac-group').forEach(function (g) {
+      var role = g.dataset.role;
+      g.querySelectorAll('.ac-chip').forEach(function (c) {
+        if (c.dataset.kind === 'dept') {
+          grants.push({ dept_id: parseInt(c.dataset.id, 10), dept_name: c.dataset.name, role: role });
+        } else {
+          grants.push({ user_id: parseInt(c.dataset.id, 10), name: c.dataset.name, role: role });
+        }
+      });
+    });
+    return grants;
+  }
+
+  function saveAccess() {
+    var grants = collectGrants();
+    api('/access/batch', { method: 'POST', body: { grants: grants } }).then(function () {
+      toast('Права сохранены');
+      renderAccess();
+    }).catch(function (err) { toast(err.message, 'error'); });
   }
 
   /* ---------- УТИЛИТЫ ---------- */
@@ -706,10 +830,6 @@
     var s = Object.keys(obj).filter(function (k) { return obj[k] !== '' && obj[k] !== null && obj[k] !== undefined; })
       .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(obj[k]); }).join('&');
     return s ? '?' + s : '';
-  }
-
-  function monthToDate(v) {
-    return v ? v + '-01' : '';
   }
 
   boot();

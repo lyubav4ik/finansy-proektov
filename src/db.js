@@ -54,6 +54,8 @@ const SCHEMA = `
     date TEXT NOT NULL,
     comment TEXT DEFAULT '',
     employee_id INTEGER,
+    author_id INTEGER,
+    author_name TEXT DEFAULT '',
     created_at INTEGER DEFAULT (unixepoch()),
     FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories (id),
@@ -64,6 +66,41 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_tx_portal ON transactions (portal);
   CREATE INDEX IF NOT EXISTS idx_cat_portal ON categories (portal);
   CREATE INDEX IF NOT EXISTS idx_proj_portal ON projects (portal);
+  CREATE TABLE IF NOT EXISTS portal_roles (
+    portal TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('admin','full','editor','viewer')),
+    name TEXT DEFAULT '',
+    origin_dept INTEGER,
+    created_at INTEGER DEFAULT (unixepoch()),
+    PRIMARY KEY (portal, user_id)
+  );
+  CREATE TABLE IF NOT EXISTS project_access (
+    portal TEXT NOT NULL,
+    project_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('admin','full','editor','viewer')),
+    name TEXT DEFAULT '',
+    origin_dept INTEGER,
+    created_at INTEGER DEFAULT (unixepoch()),
+    PRIMARY KEY (portal, project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+  );
+  CREATE TABLE IF NOT EXISTS access_departments (
+    portal TEXT NOT NULL,
+    project_id INTEGER NOT NULL DEFAULT 0,
+    dept_id INTEGER NOT NULL,
+    dept_name TEXT DEFAULT '',
+    role TEXT NOT NULL CHECK (role IN ('admin','full','editor','viewer')),
+    created_at INTEGER DEFAULT (unixepoch()),
+    PRIMARY KEY (portal, project_id, dept_id)
+  );
+  CREATE TABLE IF NOT EXISTS department_members (
+    portal TEXT NOT NULL,
+    dept_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    PRIMARY KEY (portal, dept_id, user_id)
+  );
 `;
 
 const SYSTEM_CATEGORIES = [
@@ -159,6 +196,13 @@ function initDatabase() {
           raw.exec('PRAGMA journal_mode = WAL;');
         }
         raw.exec(SCHEMA);
+        // миграция: колонки автора для старых таблиц
+        try { raw.exec('ALTER TABLE transactions ADD COLUMN author_id INTEGER'); } catch (e) { /* уже есть */ }
+        try { raw.exec("ALTER TABLE transactions ADD COLUMN author_name TEXT DEFAULT ''"); } catch (e) { /* уже есть */ }
+        try { raw.exec("ALTER TABLE portal_roles ADD COLUMN name TEXT DEFAULT ''"); } catch (e) { /* уже есть */ }
+        try { raw.exec('ALTER TABLE portal_roles ADD COLUMN origin_dept INTEGER'); } catch (e) { /* уже есть */ }
+        try { raw.exec("ALTER TABLE project_access ADD COLUMN name TEXT DEFAULT ''"); } catch (e) { /* уже есть */ }
+        try { raw.exec('ALTER TABLE project_access ADD COLUMN origin_dept INTEGER'); } catch (e) { /* уже есть */ }
         persist();
         console.log('[DB] инициализирована:', dbFile);
       });
@@ -175,4 +219,22 @@ function ensureSystemCategories(portal) {
   });
 }
 
-module.exports = { db, initDatabase, SYSTEM_CATEGORIES, DEFAULT_COLORS, ensureSystemCategories };
+/** Выдать/подтвердить роль администратора (владелец установки) */
+function grantAdmin(portal, userId) {
+  if (!raw || !portal || !userId) return;
+  db.prepare('INSERT OR IGNORE INTO portal_roles (portal, user_id, role) VALUES (?,?,?)').run(portal, userId, 'admin');
+}
+
+/** Роль пользователя на портале (без права на проект). Возвращает роль или 'none' */
+function globalRole(portal, userId) {
+  const row = db.prepare('SELECT role FROM portal_roles WHERE portal = ? AND user_id = ?').get(portal, userId);
+  return row ? row.role : 'none';
+}
+
+/** Есть ли вообще настроенные роли на портале (кроме админа-владельца) */
+function hasConfiguredRoles(portal) {
+  const row = db.prepare('SELECT COUNT(*) AS c FROM portal_roles WHERE portal = ?').get(portal);
+  return (row && row.c) > 0;
+}
+
+module.exports = { db, initDatabase, SYSTEM_CATEGORIES, DEFAULT_COLORS, ensureSystemCategories, grantAdmin, globalRole, hasConfiguredRoles };

@@ -9,15 +9,23 @@ const mock = http.createServer((req, res) => {
   let body = '';
   req.on('data', c => body += c);
   req.on('end', () => {
+    const isToken7 = body.includes('token7');
     if (req.url.includes('user.current')) {
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ result: { ID: 42, NAME: 'Тест', LAST_NAME: 'Петров', EMAIL: 'test@test.ru' } }));
+      res.end(JSON.stringify({ result: isToken7
+        ? { ID: 7, NAME: 'Анна', LAST_NAME: 'Сидорова', EMAIL: 'a@s.ru' }
+        : { ID: 42, NAME: 'Тест', LAST_NAME: 'Петров', EMAIL: 'test@test.ru' } }));
     } else if (req.url.includes('user.get')) {
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ result: [
+      let result = [
         { ID: 42, NAME: 'Тест', LAST_NAME: 'Петров', EMAIL: 't@t.ru' },
-        { ID: 7, NAME: 'Анна', LAST_NAME: 'Сидорова', EMAIL: 'a@s.ru' }
-      ] }));
+        { ID: 7, NAME: 'Анна', LAST_NAME: 'Сидорова', EMAIL: 'a@s.ru', UF_DEPARTMENT: [1] }
+      ];
+      if (body.includes('UF_DEPARTMENT')) result = result.filter(u => (u.UF_DEPARTMENT || []).includes(1));
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ result }));
+    } else if (req.url.includes('department.get')) {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ result: [{ ID: 1, NAME: 'Разработка' }] }));
     } else {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ result: [] }));
@@ -92,6 +100,33 @@ async function main() {
   console.log('\n4. Проект →', proj.status, JSON.stringify(proj.json));
   const pid = proj.json.id;
   if (!pid) throw new Error('Нет id проекта');
+
+  // 4b. Доступы (админ)
+  const acc = await req('/api/access', { headers: H });
+  console.log('\n4b. Доступы →', acc.status, 'пользователей:', (acc.json.users || []).length);
+  if (acc.status !== 200) throw new Error('/api/access не 200');
+  if (!(acc.json.users || []).some(u => String(u.id) === '42')) throw new Error('нет текущего админа в списке');
+
+  // 4c. Глобальная роль отделу 1 (full) — его сотрудники получают роль
+  const bch = await req('/api/access/batch', { method: 'POST', headers: H, body: { grants: [{ dept_id: 1, dept_name: 'Разработка', role: 'full' }] } });
+  console.log('4c. Batch глобальных ролей →', bch.status, JSON.stringify(bch.json));
+  if (bch.status !== 200) throw new Error('/api/access/batch не 200');
+  const acc2 = await req('/api/access', { headers: H });
+  const deptFound = (acc2.json.departments || []).some(d => String(d.id) === '1' && d.globalRole === 'full');
+  if (!deptFound) throw new Error('отдел 1 не сохранился в глобальных ролях');
+
+  // роль отдела применяется к сотруднику отдела (Анна, user 7 — в отделе 1)
+  const me7 = await req('/api/me', { headers: { 'X-Portal': 'integportal.ru', 'X-Auth-Token': 'token7' } });
+  console.log('4c2. Роль пользователя 7 (через отдел) →', JSON.stringify(me7.json.role));
+  if (me7.json.role !== 'full') throw new Error('роль отдела не применилась к пользователю: ' + me7.json.role);
+
+  // 4d. Права на проект через новый формат (grants массивом)
+  const prAcc = await req('/api/access/project', { method: 'POST', headers: H, body: { project_id: pid, grants: [{ user_id: 7, name: 'Анна Сидорова', role: 'editor' }] } });
+  console.log('4d. Права на проект →', prAcc.status, JSON.stringify(prAcc.json));
+  if (prAcc.status !== 200) throw new Error('/api/access/project не 200');
+  const acc3 = await req('/api/access', { headers: H });
+  const projAcc = (acc3.json.projects || []).find(p => String(p.id) === String(pid));
+  if (!projAcc || !(projAcc.users || []).some(u => String(u.id) === '7' && u.role === 'editor')) throw new Error('права на проект не сохранились');
 
   // 5. Сотрудник из портала
   const us = await req('/api/portal-users', { headers: H });

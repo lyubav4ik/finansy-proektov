@@ -66,8 +66,8 @@ body {
   padding: 40px 46px;
   max-width: 380px;
 }
-.boot-logo { width: 64px; height: 64px; margin: 0 auto 18px; }
-.boot-logo svg { width: 64px; height: 64px; }
+.boot-logo, .boot-logo-img { width: 64px; height: 64px; margin: 0 auto 18px; }
+.boot-logo-img { object-fit: contain; border-radius: 14px; }
 .boot-card h1 { font-family: var(--fox-font-heading); font-size: 20px; color: var(--fox-text-heading); margin-bottom: 6px; }
 .boot-card p { color: var(--fox-text-secondary); font-size: 14px; }
 
@@ -320,6 +320,43 @@ select.fox-input { cursor: pointer; appearance: none; -webkit-appearance: none;
 .fox-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 .fox-toast.success { background: #0F9D6E; }
 .fox-toast.error { background: #DC2626; }
+
+/* ---------- ДОСТУПЫ ---------- */
+.view-head { margin-bottom: 16px; }
+.view-head h2 { font-family: var(--fox-font-heading); font-size: 22px; color: var(--fox-text-heading); margin: 0 0 6px; }
+.view-sub { color: var(--fox-text-secondary); font-size: 14px; line-height: 1.5; margin: 0 0 16px; max-width: 640px; }
+.access-actions { margin-top: 16px; display: flex; justify-content: flex-end; }
+.access-roles-hint { margin-top: 14px; background: var(--fox-orange-soft); border-radius: var(--fox-radius-md); padding: 12px 16px; }
+.access-roles-hint p { margin: 4px 0; font-size: 13px; color: var(--fox-text-accent); }
+.muted { color: var(--fox-text-secondary); font-size: 12px; }
+.badge-inline { display: inline-block; padding: 1px 8px; border-radius: var(--fox-radius-full); background: var(--fox-orange-soft); color: var(--fox-text-accent); font-size: 11px; font-weight: 600; margin-left: 6px; }
+.tag { display: inline-block; background: var(--fox-bg-card-solid); border: 1px solid var(--fox-border); border-radius: var(--fox-radius-full); padding: 1px 8px; margin: 2px 4px 2px 0; font-size: 12px; }
+.fox-card + .fox-card { margin-top: 16px; }
+#view-access .fox-card { margin-top: 0; }
+
+/* Группы доступов: роль → выбранные сотрудники и отделы (чипы) */
+.ac-group { background: var(--fox-bg-card-solid); border: 1px solid var(--fox-border); border-radius: var(--fox-radius-lg); padding: 12px 16px; margin-bottom: 14px; }
+.ac-group:last-child { margin-bottom: 0; }
+.ac-group--admin { border-color: rgba(255, 107, 44, 0.35); background: linear-gradient(180deg, rgba(255, 107, 44, 0.06), var(--fox-bg-card-solid)); }
+.ac-group-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.ac-group-head b { font-family: var(--fox-font-heading); font-size: 15px; color: var(--fox-text-heading); }
+.ac-group-head span { color: var(--fox-text-secondary); font-size: 12px; }
+
+/* Чипы выбранных сотрудников и отделов */
+.ac-chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 30px; margin-bottom: 10px; }
+.ac-chip { display: inline-flex; align-items: center; gap: 7px; background: var(--fox-bg1, #f4f0eb); border: 1px solid var(--fox-border); border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 13px; font-weight: 500; color: var(--fox-text); }
+.ac-chip svg { color: var(--fox-orange); flex: 0 0 auto; }
+.ac-chip--dept { background: var(--fox-orange-soft); border-color: rgba(255, 107, 44, 0.28); color: var(--fox-text-heading); }
+.ac-chip .chip-x { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: none; border-radius: 50%; background: rgba(0, 0, 0, 0.05); color: inherit; cursor: pointer; padding: 0; opacity: 0.6; transition: opacity 0.15s ease, background 0.15s ease; }
+.ac-chip .chip-x:hover { opacity: 1; background: rgba(255, 107, 44, 0.18); color: var(--fox-orange); }
+.ac-add { margin-top: 2px; }
+
+/* Пустое состояние (нет проектов) */
+.empty-projects { text-align: center; padding: 48px 24px; }
+.empty-icon { width: 68px; height: 68px; margin: 0 auto 16px; border-radius: var(--fox-radius-full); background: var(--fox-orange-soft); display: flex; align-items: center; justify-content: center; }
+.empty-title { font-family: var(--fox-font-heading); font-size: 20px; color: var(--fox-text-heading); margin: 0 0 8px; }
+.empty-sub { color: var(--fox-text-secondary); font-size: 14px; max-width: 420px; margin: 0 auto 20px; line-height: 1.55; }
+.fox-btn--lg { padding: 11px 22px; font-size: 15px; }
 
 /* ---------- АДАПТИВ ---------- */
 @media (max-width: 900px) {

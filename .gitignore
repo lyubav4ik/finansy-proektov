@@ -1,8 +1,14 @@
 node_modules/
 src/node_modules/
 src/data/
+data/
+logs/
+_session/
 *.log
+*.db
 deploy-server.json
 src.tar.gz
 tmp_test/
 .eslintrc
+.idea/
+.vscode/
